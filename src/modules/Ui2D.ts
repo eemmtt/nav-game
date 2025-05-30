@@ -31,6 +31,10 @@ export class Ui2D{
     isDrawing: boolean;
     state: number;
     cellEventHandlers: InteractionHandlers;
+    pathEventHandlers: InteractionHandlers;
+    button0: Graphics;
+    button1: Graphics;
+    button2: Graphics;
 
 
 
@@ -52,28 +56,76 @@ export class Ui2D{
             .fill(0xffffff)
         ;
         this.root.addChild(bg, this.cellShapes, this.gridLines);
-
+        
         //draw grid
         this.gridInset = props.rect.width / 12;
         this.gridSize = props.sceneManager.gridSize;
         this.gridCellWidth = (props.rect.width - 2 * this.gridInset) / this.gridSize;
-
+        
         const origin = new Point(props.rect.left + this.gridInset, props.rect.top + this.gridInset);
-
+        
         for (let i = 0; i <= this.gridSize; i++){
             const hLine = new Graphics()
-                .moveTo(origin.x, origin.y + i * this.gridCellWidth)
-                .lineTo(origin.x + this.gridCellWidth * this.gridSize, origin.y + i * this.gridCellWidth)
-                .stroke({pixelLine: true, color: 0x000000})
+            .moveTo(origin.x, origin.y + i * this.gridCellWidth)
+            .lineTo(origin.x + this.gridCellWidth * this.gridSize, origin.y + i * this.gridCellWidth)
+            .stroke({pixelLine: true, color: 0x000000})
             ;
             const vLine = new Graphics()
-                .moveTo(origin.x + i * this.gridCellWidth, origin.y)
-                .lineTo(origin.x + i * this.gridCellWidth, origin.y + this.gridCellWidth * this.gridSize)
-                .stroke({pixelLine: true, color: 0x000000})
+            .moveTo(origin.x + i * this.gridCellWidth, origin.y)
+            .lineTo(origin.x + i * this.gridCellWidth, origin.y + this.gridCellWidth * this.gridSize)
+            .stroke({pixelLine: true, color: 0x000000})
             ;
             this.gridLines.addChild(hLine, vLine);
         }
         this.gridOrigin = origin;
+        
+        // Create buttons below the grid
+        const buttonY = props.rect.top + this.gridInset + this.gridSize * this.gridCellWidth + 20;
+        const buttonWidth = 60;
+        const buttonHeight = 15;
+        const buttonSpacing = 20;
+
+        // Button 0
+        this.button0 = new Graphics()
+            .roundRect(0, 0, buttonWidth, buttonHeight, 5)
+            .fill(this.state === 0 ? 0x4CAF50 : 0xE0E0E0)
+            .stroke({ color: 0x000000, width: 1 });
+        this.button0.position.set(props.rect.left + this.gridInset, buttonY);
+        this.button0.eventMode = 'static';
+        this.button0.cursor = 'pointer';
+        this.button0.on('pointerdown', () => {
+            this.state = 0;
+            this.updateButtonAppearance();
+        });
+
+        // Button 1
+        this.button1 = new Graphics()
+            .roundRect(0, 0, buttonWidth, buttonHeight, 5)
+            .fill(this.state === 1 ? 0x4CAF50 : 0xE0E0E0)
+            .stroke({ color: 0x000000, width: 1 });
+        this.button1.position.set(props.rect.left + this.gridInset + buttonWidth + buttonSpacing, buttonY);
+        this.button1.eventMode = 'static';
+        this.button1.cursor = 'pointer';
+        this.button1.on('pointerdown', () => {
+            this.state = 1;
+            this.updateButtonAppearance();
+        });
+
+        // Button 2
+        this.button2 = new Graphics()
+            .roundRect(0, 0, buttonWidth, buttonHeight, 5)
+            .fill(this.state === 2 ? 0x4CAF50 : 0xE0E0E0)
+            .stroke({ color: 0x000000, width: 1 });
+        this.button2.position.set(props.rect.left + this.gridInset + (buttonWidth + buttonSpacing) * 2, buttonY);
+        this.button2.eventMode = 'static';
+        this.button2.cursor = 'pointer';
+        this.button2.on('pointerdown', () => {
+            this.state = 2;
+            this.updateButtonAppearance();
+        });
+
+        this.root.addChild(this.button0, this.button1, this.button2);
+
 
         // init cells
         this.cells = [];
@@ -86,8 +138,9 @@ export class Ui2D{
                 const cH = this.gridCellWidth;
                 const cG = new Graphics()
                     .rect(cX, cY, cW, cH)
-                    .fill(0xFF0022)
+                    .fill(0xFFFFFF)
                 ;
+                cG.tint = 0xFF1133;
                 cG.visible = false;
                 this.cellShapes.addChild(cG);
 
@@ -107,7 +160,7 @@ export class Ui2D{
 
         this.cellEventHandlers = {
             pointerDown: (event) => {
-                //console.log("uiLayer clicked!");
+                console.log(this.state);
                 const pt = this.checkGrid(event, this.gridOrigin, this.gridSize, this.gridCellWidth);
                 if (pt){
                     this.isDrawing = !this.cells[pt.y][pt.x].isVisible;
@@ -134,8 +187,25 @@ export class Ui2D{
             }
         }
 
+        this.pathEventHandlers = {
+            pointerDown: (event) => {
+                console.log(this.state);
+                const pt = this.checkGrid(event, this.gridOrigin, this.gridSize, this.gridCellWidth);
+                if (pt && this.cells[pt.y][pt.x].isVisible){
+                    this.cells[pt.y][pt.x].togglePath();
+                }
+                this.root.off('pointerdown', this.pathEventHandlers.pointerDown);
+                this.root.on('pointerdown', this.pathEventHandlers.pointerDown);
+            },
+            pointerMove: (event) => {
+                // No dragging behavior for paths
+            },
+            pointerUp: (event) => {
+                // No special up behavior for paths
+            }
+        }
 
-        this.root.on('pointerdown', this.cellEventHandlers.pointerDown);
+        this.updateEventHandlers();
 
         this.parent.addChild(this.root);
     }
@@ -172,5 +242,40 @@ export class Ui2D{
         } else if (this.cells[pt.y][pt.x].isVisible == false && this.isDrawing == true){
             this.cells[pt.y][pt.x].toggleVisibility();
         };
+    }
+
+    updateButtonAppearance(){
+        this.button0.clear()
+            .roundRect(0, 0, 60, 15, 5)
+            .fill(this.state === 0 ? 0x4CAF50 : 0xE0E0E0)
+            .stroke({ color: 0x000000, width: 1 });
+        
+        this.button1.clear()
+            .roundRect(0, 0, 60, 15, 5)
+            .fill(this.state === 1 ? 0x4CAF50 : 0xE0E0E0)
+            .stroke({ color: 0x000000, width: 1 });
+        
+        this.button2.clear()
+            .roundRect(0, 0, 60, 15, 5)
+            .fill(this.state === 2 ? 0x4CAF50 : 0xE0E0E0)
+            .stroke({ color: 0x000000, width: 1 });
+        
+        this.updateEventHandlers();
+    }
+
+    updateEventHandlers(){
+        // Remove all existing event handlers
+        this.root.off('pointerdown', this.cellEventHandlers.pointerDown);
+        this.root.off('pointerdown', this.pathEventHandlers.pointerDown);
+        this.root.off('pointermove', this.cellEventHandlers.pointerMove);
+        this.root.off('pointerup', this.cellEventHandlers.pointerUp);
+        
+        // Add appropriate handlers based on state
+        if (this.state === 0) {
+            this.root.on('pointerdown', this.cellEventHandlers.pointerDown);
+        } else if (this.state === 1) {
+            this.root.on('pointerdown', this.pathEventHandlers.pointerDown);
+        }
+        // State 2 can be added later for other functionality
     }
 }

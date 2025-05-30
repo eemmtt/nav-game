@@ -19,6 +19,7 @@ export class Cell{
     floorIndex: number | null = null;
     wallIndices: (number | null)[] = [null, null, null, null]; // [North, South, East, West]
     isVisible = false;
+    isPath = false;
     cellGrid: Cell[][];
     gridSize: number;
 
@@ -113,6 +114,7 @@ export class Cell{
             //console.log(this.floors.getActiveCount(), this.floors.getPos(this.floorIndex!));
         } else {
             this.graphic.visible = false;
+            this.isPath = false; // Reset path state when cell becomes invisible
             
             // Remove floor instance
             if (this.floorIndex !== null) {
@@ -144,6 +146,21 @@ export class Cell{
                     neighbor.updateWalls();
                 }
             }
+        }
+    }
+
+    public togglePath(){
+        if (!this.isVisible) return; // Can only make visible cells into paths
+        
+        this.isPath = !this.isPath;
+        this.updateGraphicColor();
+    }
+
+    private updateGraphicColor(){
+        if (this.isPath) {
+            this.graphic.tint = 0x33FFFF; // Cyan for path cells
+        } else {
+            this.graphic.tint = 0xFF1133; // White for normal visible cells
         }
     }
 }
