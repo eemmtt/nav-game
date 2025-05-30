@@ -100,11 +100,14 @@ export class Ui2D{
             this.cells.push(cellRow);
         }
 
+        this.isDrawing = false;
+
         this.pointerDown = (event) => {
             //console.log("uiLayer clicked!");
             const pt = this.checkGrid(event, this.gridOrigin, this.gridSize, this.gridCellWidth);
             if (pt){
                 this.isDrawing = !this.cells[pt.y][pt.x].isVisible;
+                this.draw(pt);
             }
             this.root.on('pointermove', this.pointerMove);
             this.root.on('pointerup', this.pointerUp);
@@ -116,18 +119,13 @@ export class Ui2D{
             //console.log("pointer move");
             const pt = this.checkGrid(event, this.gridOrigin, this.gridSize, this.gridCellWidth);
             if(pt) {
-                if (this.cells[pt.y][pt.x].isVisible == true && this.isDrawing == false){
-                    this.cells[pt.y][pt.x].toggleVisibility();
-                } else if (this.cells[pt.y][pt.x].isVisible == false && this.isDrawing == true){
-                    this.cells[pt.y][pt.x].toggleVisibility();
-                }
+                this.draw(pt);
             }
 
         }
 
         this.pointerUp = (event) => {
             //console.log("pointer up");
-            this.isDrawing = false;
             this.root.off('pointermove', this.pointerMove);
             this.root.off('pointerup', this.pointerUp);
 
@@ -164,5 +162,13 @@ export class Ui2D{
 
         return null;
         
+    }
+
+    draw(pt: Point){
+        if (this.cells[pt.y][pt.x].isVisible == true && this.isDrawing == false){
+            this.cells[pt.y][pt.x].toggleVisibility();
+        } else if (this.cells[pt.y][pt.x].isVisible == false && this.isDrawing == true){
+            this.cells[pt.y][pt.x].toggleVisibility();
+        };
     }
 }
